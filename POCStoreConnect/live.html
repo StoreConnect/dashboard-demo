@@ -874,6 +874,17 @@
         }
     }
 
+    /**
+     * Remove all custom layers
+     */
+    function removeAllLayers() {
+        for (let layer of layerIds) {
+            if (layer.includes("geojson-data")) {
+                hideLayer(layer);
+            }
+        }
+    }
+
     /*
     //function loadMarkers(url) {
     //    loadJSON(url, function (err, _markers) {

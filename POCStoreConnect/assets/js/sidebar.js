@@ -48,6 +48,7 @@ $(function () {
 
 $(function () {
     $("#loadMenu").on("click", function () {
+        removeAllLayers();
         if (dtFROM.value !== "" && dtTO.value !== "") {
             loadMenu(dtFROM.value, dtTO.value);
         } else {
@@ -134,25 +135,28 @@ function loadMenu(dateFROM, dateTO) {
         // fetch(endpointFilter,options).then(function(response) {
         //     console.log(endpointFilter+"/date/bt/"+df+"000 00:00"+"/"+dt+"000 00:00");
         //     fetch(endpointFilter+"/date/bt/"+df+"000 00:00"+"/"+dt+"000 00:00", {method:"PUT",headers:myHeaders, mode:'cors',cache:"default"}).then(function(response) {
-                let endpoint = API_SERVICE_URL+sessionId+"/observations";
-                // let endpoint = API_SERVICE_URL + sessionId + "/observations/filter/dashboardFilter";
-                fetch(endpoint, opt).then(res => res.json()).then(function (response) {
-                    obsByMotionSubject = [];
-                    let motionSubject;
-                    for (let obs of response.features) {
-                        if (moment(obs.properties.timeStamp.slice(0, -9)).isBetween(df, dt)) {
-                            motionSubject = obs.properties.motionSubject.split("/").pop();
-                            if (!obsByMotionSubject.hasOwnProperty(motionSubject)) {
-                                obsByMotionSubject[motionSubject] = [];
-                            }
-                            obsByMotionSubject[motionSubject].push(obs);
-                        }
+        let endpoint = API_SERVICE_URL + sessionId + "/observations";
+        // let endpoint = API_SERVICE_URL + sessionId + "/observations/filter/dashboardFilter";
+        fetch(endpoint, opt).then(res => res.json()).then(function (response) {
+            obsByMotionSubject = [];
+            let motionSubject;
+            for (let obs of response.features) {
+                let itemDate = moment(obs.properties.timeStamp.slice(0, -9)).add("2", "hours");
+                if (itemDate.isBetween(df, dt)) {
+                    motionSubject = obs.properties.motionSubject.split("/").pop();
+                    if (!obsByMotionSubject.hasOwnProperty(motionSubject)) {
+                        obsByMotionSubject[motionSubject] = [];
                     }
-                    obsByMotionSubject[motionSubject].sort(function (a, b) {
-                        return moment(a.properties.timeStamp.slice(0, -9)).valueOf() - (moment(b.properties.timeStamp.slice(0, -9)).valueOf());
-                    });
-                    createApiServiceMenu(obsByMotionSubject);
+                    obsByMotionSubject[motionSubject].push(obs);
+                }
+            }
+            if (!typeof obsByMotionSubject[motionSubject] == 'undefined' && obsByMotionSubject[motionSubject].length > 1) {
+                obsByMotionSubject[motionSubject].sort(function (a, b) {
+                    return moment(a.properties.timeStamp.slice(0, -9)).valueOf() - (moment(b.properties.timeStamp.slice(0, -9)).valueOf());
                 });
+            }
+            createApiServiceMenu(obsByMotionSubject);
+        });
         //     });
         // });
 
@@ -249,22 +253,27 @@ function createApiServiceMenu(items) {
         first = true;
         let datetimeF;
         let datetimeT;
+        items[it].sort(function(a, b) {
+            return moment(a.properties.timeStamp.slice(0, -9)).valueOf() - (moment(b.properties.timeStamp.slice(0, -9)).valueOf());
+        });
         for (let item of items[it]) {
             item.properties.locationbuilding = "1";
             item.properties.locationfloor = "" + item.properties.floor;
             let v1 = item.geometry.coordinates[0];
             item.geometry.coordinates[0] = item.geometry.coordinates[1];
             item.geometry.coordinates[1] = v1;
+
             if (first) {
                 first = false;
                 datetimeF = moment(item.properties.timeStamp.slice(0, -9));
                 datetimeT = moment(item.properties.timeStamp.slice(0, -9));
             } else {
-                if (moment(item.properties.timeStamp.slice(0, -9)).isBefore(datetimeF)) {
-                    datetimeF = moment(item.properties.timeStamp.slice(0, -9));
+                let itemDate = moment(item.properties.timeStamp.slice(0, -9));
+                if (itemDate.isBefore(datetimeF)) {
+                    datetimeF = itemDate;
                 }
-                if (moment(item.properties.timeStamp.slice(0, -9)).isAfter(datetimeT)) {
-                    datetimeT = moment(item.properties.timeStamp.slice(0, -9));
+                if (itemDate.isAfter(datetimeT)) {
+                    datetimeT = itemDate;
                 }
             }
         }
