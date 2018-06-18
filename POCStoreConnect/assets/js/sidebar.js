@@ -1,6 +1,10 @@
 let API_URL = "http://apicapteur.westeurope.cloudapp.azure.com:8080/SensorThingsService/v1.0/";
 let API_OBSERVATIONS = API_URL + "Observations?$top=500000&$expand=Datastream";
 let API_DATASTREAM = API_URL + "Datastreams([id])/Observations?$top=5000000&$orderby=phenomenonTime asc";
+let API_SERVICE_URL = "http://api-service.westeurope.cloudapp.azure.com:8080/services-api/";
+let API_SERVICE_LOGIN = API_SERVICE_URL + "connect/apiontologie.westeurope.cloudapp.azure.com/8890";
+let sessionId = "";
+
 let myHeaders = new Headers();
 let dtFROM = document.querySelector("#dtFROM");
 let dtTO = document.querySelector("#dtTO");
@@ -10,6 +14,7 @@ let loaderService = document.querySelector(".loader-service");
 
 let Observations = [];
 let obsBySubject = [];
+let obsByMotionSubject = [];
 
 //DateTimePicker handling
 $(function () {
@@ -110,9 +115,53 @@ function loadMenu(dateFROM, dateTO) {
     });
 
     //TODO: fetch API service
+    //API SERVICE
+    //1. se logger sur API_SERVICE_LOGIN
+    //2. enregistrer l'id de session dans la variable sessionId
+    //3.
+    let options = {
+        method: 'POST',
+        headers: myHeaders,
+        mode: 'cors',
+        cache: 'default'
+    };
+    fetch(API_SERVICE_LOGIN, options).then(response => response.text()).then(function (response) {
+        sessionId = response;
+        console.log("Session id  : " + sessionId);
 
-    // createApiServiceMenu(GEOJSON_SERVICE);
+        //Creation du filtre de date pour les observations.
+        // let endpointFilter = API_SERVICE_URL+sessionId+"/filters/dashboardFilter";
+        // fetch(endpointFilter,options).then(function(response) {
+        //     console.log(endpointFilter+"/date/bt/"+df+"000 00:00"+"/"+dt+"000 00:00");
+        //     fetch(endpointFilter+"/date/bt/"+df+"000 00:00"+"/"+dt+"000 00:00", {method:"PUT",headers:myHeaders, mode:'cors',cache:"default"}).then(function(response) {
+                let endpoint = API_SERVICE_URL+sessionId+"/observations";
+                // let endpoint = API_SERVICE_URL + sessionId + "/observations/filter/dashboardFilter";
+                fetch(endpoint, opt).then(res => res.json()).then(function (response) {
+                    obsByMotionSubject = [];
+                    let motionSubject;
+                    for (let obs of response.features) {
+                        if (moment(obs.properties.timeStamp.slice(0, -9)).isBetween(df, dt)) {
+                            motionSubject = obs.properties.motionSubject.split("/").pop();
+                            if (!obsByMotionSubject.hasOwnProperty(motionSubject)) {
+                                obsByMotionSubject[motionSubject] = [];
+                            }
+                            obsByMotionSubject[motionSubject].push(obs);
+                        }
+                    }
+                    obsByMotionSubject[motionSubject].sort(function (a, b) {
+                        return moment(a.properties.timeStamp.slice(0, -9)).valueOf() - (moment(b.properties.timeStamp.slice(0, -9)).valueOf());
+                    });
+                    createApiServiceMenu(obsByMotionSubject);
+                });
+        //     });
+        // });
 
+        // let endpoint = API_SERVICE_URL+sessionId+"/filters/dashboardFilter/date/bt/"+df+"/"+dt;
+
+
+    }).catch(function (error) {
+
+    });
 }
 
 
@@ -146,6 +195,9 @@ function createApiCapteurMenu(items) {
             spanDSDate.appendChild(document.createTextNode(" (" + datetimeF.substring(0, datetimeF.length - 8) + "/" + datetimeT.substring(0, datetimeT.length - 8) + ")"));
 
             let color = colorFactory.getRandomColor();
+            if (typeof color == 'undefined') {
+                color = "#000000";
+            }
             let colorIcon = document.createElement("i");
             colorIcon.setAttribute("class", "fas fa-square-full float-right pr-5");
             colorIcon.style.color = color;
@@ -162,7 +214,7 @@ function createApiCapteurMenu(items) {
             li.setAttribute("data-color", color);
             li.setAttribute("data-datastream-id", items[item][datastream][0].Datastream["@iot.id"]);
             li.setAttribute("data-subject-id", item);
-            li.setAttribute("data-layer-id", "geojson-data-"+randomId());
+            li.setAttribute("data-layer-id", "geojson-data-" + randomId());
             li.style.cursor = "pointer";
 
             li.onclick = function () {
@@ -185,48 +237,82 @@ function createApiCapteurMenu(items) {
 }
 
 function createApiServiceMenu(items) {
+    console.log(items);
     let menu = document.querySelector("#apiservicemenu");
     let uls = [];
     let ul = document.createElement('ul');
     ul.setAttribute("class", "ul-subject");
 
-    let li = document.createElement("li");
+    // items[Object.keys(items)[0]]
+    for (let it of Object.keys(items)) {
+        let li = document.createElement("li");
+        first = true;
+        let datetimeF;
+        let datetimeT;
+        for (let item of items[it]) {
+            item.properties.locationbuilding = "1";
+            item.properties.locationfloor = "" + item.properties.floor;
+            let v1 = item.geometry.coordinates[0];
+            item.geometry.coordinates[0] = item.geometry.coordinates[1];
+            item.geometry.coordinates[1] = v1;
+            if (first) {
+                first = false;
+                datetimeF = moment(item.properties.timeStamp.slice(0, -9));
+                datetimeT = moment(item.properties.timeStamp.slice(0, -9));
+            } else {
+                if (moment(item.properties.timeStamp.slice(0, -9)).isBefore(datetimeF)) {
+                    datetimeF = moment(item.properties.timeStamp.slice(0, -9));
+                }
+                if (moment(item.properties.timeStamp.slice(0, -9)).isAfter(datetimeT)) {
+                    datetimeT = moment(item.properties.timeStamp.slice(0, -9));
+                }
+            }
+        }
 
-    let datetimeF = items.features[0].properties.dtstamp;
-    let datetimeT = items.features[items.features.length - 1].properties.dtstamp;
+        datetimeF = datetimeF.add('2', 'hours').toISOString();
+        datetimeT = datetimeT.add('2', 'hours').toISOString();
 
-    let spanDS = document.createElement("span");
-    spanDS.setAttribute("class", "ul-subject-title");
-    spanDS.appendChild(document.createTextNode(items.features[0].properties.subject.split("/").pop()));
 
-    let spanDSDate = document.createElement("span");
-    spanDSDate.setAttribute("class", "li-ds-date");
-    spanDSDate.appendChild(document.createTextNode(" (" + datetimeF.substring(0, datetimeF.length - 8) + "/" + datetimeT.substring(0, datetimeT.length - 8) + ")"));
+        let spanDS = document.createElement("span");
+        spanDS.setAttribute("class", "ul-subject-title");
+        spanDS.appendChild(document.createTextNode(it));
 
-    let color = colorFactory.getRandomColor();
-    let colorIcon = document.createElement("i");
-    colorIcon.setAttribute("class", "fas fa-square-full float-right pr-5");
-    colorIcon.style.color = color;
+        let spanDSDate = document.createElement("span");
+        spanDSDate.setAttribute("class", "li-ds-date");
+        spanDSDate.appendChild(document.createTextNode(" (" + datetimeF.substring(0, datetimeF.length - 8) + "/" + datetimeT.substring(0, datetimeT.length - 8) + ")"));
 
-    let spanNBPoints = document.createElement("span");
-    spanNBPoints.setAttribute("class", "li-ds-nbpoints");
-    spanNBPoints.appendChild(document.createTextNode(" - " + items.features.length));
+        let color = colorFactory.getRandomColor();
+        if (typeof color == 'undefined') {
+            color = "#000000";
+        }
+        let colorIcon = document.createElement("i");
+        colorIcon.setAttribute("class", "fas fa-square-full float-right pr-5");
+        colorIcon.style.color = color;
 
-    li.appendChild(spanDS);
-    li.appendChild(spanDSDate);
-    li.appendChild(spanNBPoints);
-    li.appendChild(colorIcon);
+        let spanNBPoints = document.createElement("span");
+        spanNBPoints.setAttribute("class", "li-ds-nbpoints");
+        spanNBPoints.appendChild(document.createTextNode(" - " + items[it].length));
 
-    li.setAttribute("data-color", color);
-    li.setAttribute("data-subject-id", items.features[0].properties.subject.split("/").pop());
-    li.setAttribute("data-layer-id", "geojson-data-"+randomId());
-    li.style.cursor = "pointer";
+        li.appendChild(spanDS);
+        li.appendChild(spanDSDate);
+        li.appendChild(spanNBPoints);
+        li.appendChild(colorIcon);
 
-    li.onclick = function () {
-        apiServiceMenuClick(li);
-    };
+        li.setAttribute("data-color", color);
+        li.setAttribute("data-subject-id", it);
+        li.setAttribute("data-layer-id", "geojson-data-" + randomId());
+        li.setAttribute("data-geojson", JSON.stringify(items[it]));
+        li.style.cursor = "pointer";
 
-    ul.appendChild(li);
+        li.onclick = function () {
+            apiServiceMenuClick(li);
+        };
+
+        ul.appendChild(li);
+        // }
+    }
+
+
     uls.push(ul);
     for (let ul of uls) {
         menu.appendChild(ul);
@@ -301,7 +387,9 @@ function apiServiceMenuClick(el) {
     el.classList.toggle("active");
 
     if (el.classList.contains("active")) {
-        let geojson = GEOJSON_SERVICE;
+        let geojson = {};
+        geojson.type = "FeatureCollection";
+        geojson.features = JSON.parse(el.getAttribute("data-geojson"));
         geojson.color = el.getAttribute("data-color");
         geojson.subjectId = el.getAttribute("data-subject-id");
         geojson.layerid = el.getAttribute("data-layer-id");
@@ -311,8 +399,8 @@ function apiServiceMenuClick(el) {
         let i = 0;
         for (let point of geojson.features) {
             let opacity = (i + 1) / numberOfPoints;
-            geojson.features[i].properties.opacity = opacity.toFixed(2);
-            geojson.features[i].properties.building = "1";
+            geojson.features[i].properties.opacity = parseFloat(opacity.toFixed(2));
+            geojson.features[i].properties.building = 1;
             i++;
         }
 
