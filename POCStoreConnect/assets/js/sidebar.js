@@ -245,6 +245,10 @@ function apiCapteurMenuClick(el) {
 
     if (el.classList.contains("active")) {
 
+        let df = moment(dtFROM.value).add('2', 'hours').toISOString();
+        let dt = moment(dtTO.value).add('2', 'hours').toISOString();
+        let filter = "&$filter=during(%20phenomenonTime,%20" + df + "/" + dt + "%20)";
+
         let endpoint = API_DATASTREAM.replace("[id]", el.getAttribute("data-datastream-id"));
         let opt = {
             method: 'GET',
@@ -252,7 +256,7 @@ function apiCapteurMenuClick(el) {
             mode: 'cors',
             cache: 'default'
         };
-        fetch(endpoint, opt).then(res => res.json()).then(function (response) {
+        fetch(endpoint + filter, opt).then(res => res.json()).then(function (response) {
             let geojson = {};
             geojson.type = "FeatureCollection";
             geojson.color = el.getAttribute("data-color");

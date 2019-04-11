@@ -161,7 +161,7 @@
     var start = 0;
     var playstatus = 0;
     document.getElementById('apikey').value = apikey;
-    document.querySelector('#venueid').value = 95;
+    document.querySelector('#venueid').value = 184;
     onLoadButtonClick();
 
     let layerMode = 0; //circle by default
@@ -317,24 +317,6 @@
         });
     }
 
-    function onLoadGeoJSONButtonClick() {
-        /*if(timer) {
-            clearInterval(timer);
-            document.getElementById('geojsonbtn').value = "Load GeoJSON Points";
-            timer = null;
-        }
-        else {
-            timer = setInterval(loadMarkersFunc, 2000);
-            document.getElementById('geojsonbtn').value = "Stop GeoJSON Points";
-        }*/
-        loadMarkersFunc(true);
-    }
-
-    function loadMarkersFunc(first) {
-        var geojsonurl = document.getElementById('geojsonurl').value;
-        loadAPISENSData(geojsonurl, first);
-    }
-
     function applyFilters(b, f) {
         // Check for building / floor dependant layer
         for (var i = 0; i < layerIds.length; i++) {
@@ -368,14 +350,6 @@
         currentbuilding = b;
         currentfloor = f;
         applyFilters(currentbuilding, currentfloor);
-        // If outdoor, apply no classes
-        // if (b == "") {
-        //     map.setClasses([]);
-        // }
-        // else {
-        //     // If indoor, apply indoor classes (used to hide some outdoor features if needed)
-        //     map.setClasses(["indoor"]);
-        // }
     }
 
     function loadVenue(apikey, venueid, callback) {
@@ -426,31 +400,9 @@
         xhr.send();
     }
 
-    //function onPlayButtonClick() {
-    //    if (playstatus == 1) {
-    //        document.getElementById('playbtn').value = "Stopped";
-    //        playstatus = 0;
-    //    }
-    //    else {
-    //        playstatus = 1;
-    //        playFunc(0);
-    //    }
-    //}
-    //function resetPlay() {
-    //    playstatus = 0;
-    //    document.getElementById('playbtn').value = "Start";
-    //    document.getElementById('playbtn').style.display = "";
-    //    start = 0;
-    //    markerIndex = 0;
-    //}
-
     function playFunc(timestamp) {
-        //if(playstatus == 0) return;
         if (timestamp - start > 1000) {
             start = timestamp;
-            //markerIndex += 1;
-            //markerIndex = Math.min(markerIndex, markers.features.length - 1);
-            //document.getElementById('playbtn').value = "Running (" + markerIndex + " / " + (markers.features.length - 1) + ")";
             loadMarkersFunc(false);
         }
         requestAnimationFrame(playFunc);
@@ -480,9 +432,6 @@
                     index = j;
                     lastindex = findLastIndex(tab_id[i], j);
                     for (var k = index; k <= lastindex; k++) {
-                        //if (k==lastindex) markers.features[k].properties.color = "#ff0000";
-                        //else markers.features[k].properties.color = "#0000ff";
-                        //markers.features[k].properties.opacity = (k - index + 1) / (lastindex - index + 1);
 
                         markers.features[k].properties.color = markers.color;
                         markersToDisplay.features.push(markers.features[k]);
@@ -528,102 +477,6 @@
                 return true;
         }
         return false;
-    }
-
-    function loadAPISENSData(url, first) {
-
-        loadJSON(url, function (err, _markers) {
-
-            console.log(_markers);
-
-            if (_markers) {
-
-                //markers = {};
-                //markers.type = "FeatureCollection";
-                ////_markers = FeatureCollection
-                markers = _markers;
-
-                //for (var i = 0; i < _markers.features.length; i++) {
-                //    markers.features[i] = _markers.features[i];
-                //}
-
-                // Flatten building and floor
-                for (var i = 0; i < markers.features.length; i++) {
-                    var f = markers.features[i];
-                    var v1 = f.geometry.coordinates[0];
-                    var v2 = f.geometry.coordinates[1];
-                    f.geometry.coordinates[0] = v2;
-                    f.geometry.coordinates[1] = v1;
-                    //f.geometry = {};
-                    //f.geometry.type = "Point";
-                    //f.geometry.coordinates = [f.lat, f.lon];
-
-                    //f.properties = {};
-                    //f.properties.location = {};
-                    f.properties.locationbuilding = f.properties.building;
-                    f.properties.locationfloor = f.properties.floor;
-                    //f.properties.appuserid = markers.subjectId;
-                }
-
-                console.log(markers);
-
-                // Add layers in layers list
-                var found = false;
-                for (var i = 0; i < layerIds.length; i++) {
-                    if (layerIds[i] == "circles") {
-                        found = true;
-                        break;
-                    }
-                }
-                if (found == false) layerIds.push("circles");
-
-                if (!map.getSource("markers")) {
-                    map.addSource("markers", {
-                        "type": "geojson",
-                        "maxzoom": 22,
-                        "data": markers
-                    });
-
-
-                    map.addLayer({
-                        "id": "circles",
-                        "type": "circle",
-                        "source": "markers",
-                        "filter": ["all",
-                            [
-                                "==",
-                                "locationbuilding",
-                                "{building}"
-                            ],
-                            [
-                                "==",
-                                "locationfloor",
-                                "{floor}"
-                            ]
-                        ],
-                        "paint": {
-                            "circle-radius": 3,
-                            "circle-color": {
-                                "property": "color",
-                                "type": "identity"
-                            },
-                            "circle-opacity": 0,
-                            // "circle-opacity": {
-                            //     "property": "opacity",
-                            //     "type": "identity"
-                            // }
-                        }
-                    });
-                }
-                console.log("map.getSource");
-                console.log(map.getSource("markers"));
-                updateMarkersOnMap();
-                applyFilters(currentbuilding, currentfloor);
-
-                // if (first) playFunc(0);
-            }
-        }, true);
-
     }
 
     function drawTrajectoire(geojson) {
@@ -872,77 +725,6 @@
         }
     }
 
-    /*
-    //function loadMarkers(url) {
-    //    loadJSON(url, function (err, _markers) {
-
-    //        console.log(_markers);
-
-    //        if (_markers) {
-    //            resetPlay();
-    //            markers = _markers;
-    //            // Flatten building and floor
-    //            for (var i = 0; i < markers.features.length; i++) {
-    //                var f = markers.features[i];
-
-    //                f.properties.locationbuilding = f.properties.location.building;
-    //                f.properties.locationfloor = f.properties.location.floor;
-    //            }
-
-    //            // Add layers in layers list
-    //            var found = false;
-    //            for (var i = 0; i < layerIds.length; i++) {
-    //                if (layerIds[i] == "circles") {
-    //                    found = true;
-    //                    break;
-    //                }
-    //            }
-    //            if (found == false) layerIds.push("circles");
-
-    //            if (!map.getSource("markers")) {
-    //                console.log(markers);
-    //                map.addSource("markers", {
-    //                    "type": "geojson",
-    //                    "maxzoom": 22,
-    //                    "data": markers
-    //                });
-
-    //                map.addLayer({
-    //                    "id": "circles",
-    //                    "type": "circle",
-    //                    "source": "markers",
-    //                    "filter": ["all",
-    //                        [
-    //                            "==",
-    //                            "locationbuilding",
-    //                            "{building}"
-    //                        ],
-    //                        [
-    //                            "==",
-    //                            "locationfloor",
-    //                            "{floor}"
-    //                        ]
-    //                    ],
-    //                    "paint": {
-    //                        "circle-radius": 3,
-    //                        "circle-color": {
-    //                            "property": "color",
-    //                            "type": "identity"
-    //                        },
-    //                        "circle-opacity": {
-    //                            "property": "opacity",
-    //                            "type": "identity"
-    //                        }
-    //                    }
-    //                });
-    //            }
-    //            updateMarkersOnMap();
-    //            applyFilters(currentbuilding, currentfloor);
-    //        }
-    //    });
-    //}
-    */
-
     function showMapLoader() {
         document.querySelector(".loader-map-wrapper").style.display = "flex";
     }
@@ -963,7 +745,10 @@
         }
         throw new Error('Bad Hex');
     }
+
 </script>
+
 <script type="application/javascript" src="assets/js/sidebar.js"></script>
+
 </body>
 </html>
