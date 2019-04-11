@@ -24,6 +24,7 @@
     <UseGlobalApplicationHostFile />
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
+    <Use64BitIISExpress />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -66,6 +67,23 @@
     <Reference Include="System.EnterpriseServices" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="assets\css\bootstrap-datetimepicker.min.css" />
+    <Content Include="assets\css\bootstrap.min.css" />
+    <Content Include="assets\css\design.css" />
+    <Content Include="assets\css\fa-brands.min.css" />
+    <Content Include="assets\css\fontawesome-all.min.css" />
+    <Content Include="assets\css\fontawesome.min.css" />
+    <Content Include="assets\js\apiservicemockup.js" />
+    <Content Include="assets\js\bootstrap-datetimepicker.min.js" />
+    <Content Include="assets\js\bootstrap.min.js" />
+    <Content Include="assets\js\jquery.js" />
+    <Content Include="assets\js\moment-with-locales.min.js" />
+    <Content Include="assets\js\popper.js" />
+    <Content Include="assets\js\sidebar.js" />
+    <Content Include="assets\js\timesync.js" />
+    <Content Include="assets\webfonts\fa-brands-400.svg" />
+    <Content Include="assets\webfonts\fa-regular-400.svg" />
+    <Content Include="assets\webfonts\fa-solid-900.svg" />
     <Content Include="live.html" />
     <Content Include="packages.config" />
     <Content Include="fonts\mapbox\DIN Offc Pro Bold,Arial Unicode MS Bold\0-255.pbf" />
@@ -81,6 +99,18 @@
     <Content Include="proxy.aspx" />
     <Content Include="sprites\mapbox-streets%402x.json" />
     <Content Include="sprites\mapbox-streets.json" />
+    <Content Include="assets\webfonts\fa-brands-400.eot" />
+    <Content Include="assets\webfonts\fa-brands-400.ttf" />
+    <Content Include="assets\webfonts\fa-brands-400.woff" />
+    <Content Include="assets\webfonts\fa-brands-400.woff2" />
+    <Content Include="assets\webfonts\fa-regular-400.eot" />
+    <Content Include="assets\webfonts\fa-regular-400.ttf" />
+    <Content Include="assets\webfonts\fa-regular-400.woff" />
+    <Content Include="assets\webfonts\fa-regular-400.woff2" />
+    <Content Include="assets\webfonts\fa-solid-900.eot" />
+    <Content Include="assets\webfonts\fa-solid-900.ttf" />
+    <Content Include="assets\webfonts\fa-solid-900.woff" />
+    <Content Include="assets\webfonts\fa-solid-900.woff2" />
     <None Include="Properties\PublishProfiles\pocstoreconnect - FTP.pubxml" />
     <None Include="Properties\PublishProfiles\pocstoreconnect - Web Deploy.pubxml" />
     <None Include="Web.Debug.config">
