@@ -84,6 +84,7 @@
     <Content Include="assets\webfonts\fa-brands-400.svg" />
     <Content Include="assets\webfonts\fa-regular-400.svg" />
     <Content Include="assets\webfonts\fa-solid-900.svg" />
+    <Content Include="test.html" />
     <Content Include="live.html" />
     <Content Include="packages.config" />
     <Content Include="fonts\mapbox\DIN Offc Pro Bold,Arial Unicode MS Bold\0-255.pbf" />
@@ -111,6 +112,7 @@
     <Content Include="assets\webfonts\fa-solid-900.ttf" />
     <Content Include="assets\webfonts\fa-solid-900.woff" />
     <Content Include="assets\webfonts\fa-solid-900.woff2" />
+    <Content Include="assets\mockservice.json" />
     <None Include="Properties\PublishProfiles\pocstoreconnect - FTP.pubxml" />
     <None Include="Properties\PublishProfiles\pocstoreconnect - Web Deploy.pubxml" />
     <None Include="Web.Debug.config">

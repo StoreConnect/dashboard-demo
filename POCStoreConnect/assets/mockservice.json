@@ -1,0 +1,99 @@
+﻿{
+  "observations": [
+    {
+      "timestamp": "2019-04-10T13:35:12 34:56",
+      "motionSubject": "28dd51b4fcc87128",
+      "motionState": "Stopping",
+      "coordinates": "POINT(48.87938604477707 2.3285956054011683)",
+      "store": {
+        "id": "187",
+        "label": "UBUDU",
+        "building": 1,
+        "floor": 0
+      }
+    },
+    {
+      "timestamp": "2019-04-10T13:41:78 90:12",
+      "motionSubject": "28dd51b4fcc87128",
+      "motionState": "Stopping",
+      "coordinates": "POINT(48.87938604477707 2.3286956054011683)",
+      "store": {
+        "id": "187",
+        "label": "UBUDU",
+        "building": 1,
+        "floor": 0
+      }
+    },
+    {
+      "timestamp": "2019-04-10T13:35:12 34:56",
+      "motionSubject": "28dd51b4fcc87128",
+      "motionState": "Stopping",
+      "coordinates": "POINT(48.87948604477707 2.3286956054011683)",
+      "store": {
+        "id": "187",
+        "label": "UBUDU",
+        "building": 1,
+        "floor": 0
+      }
+    },
+    {
+      "timestamp": "2019-04-10T13:41:78 90:12",
+      "motionSubject": "28dd51b4fcc87128",
+      "motionState": "Stopping",
+      "coordinates": "POINT(48.87948604477707 2.3285956054011683)",
+      "store": {
+        "id": "187",
+        "label": "UBUDU",
+        "building": 1,
+        "floor": 0
+      }
+    },
+    {
+      "timestamp": "2019-04-10T13:41:12 34:56",
+      "motionSubject": "hye6283Jealoe98",
+      "motionState": "Stopping",
+      "coordinates": "POINT(48.87938604477707 2.3285956054011683)",
+      "store": {
+        "id": "187",
+        "label": "UBUDU",
+        "building": 1,
+        "floor": 0
+      }
+    },
+    {
+      "timestamp": "2019-04-10T13:35:01 23:45",
+      "motionSubject": "hye6283Jealoe98",
+      "coordinates": "POINT(48.87938604477707 2.3285956054011683)",
+      "store": {
+        "id": "187",
+        "label": "UBUDU",
+        "building": 1,
+        "floor": 0
+      }
+    },
+    {
+      "timestamp": "2019-04-10T13:38:12 34:56",
+      "motionSubject": "huoeoeu8389jj",
+      "motionState": "Stopping",
+      "coordinates": "POINT(48.87938604477707 2.3285956054011683)",
+      "store": {
+        "id": "187",
+        "label": "UBUDU",
+        "building": 1,
+        "floor": 0
+      }
+    },
+    {
+      "timestamp": "2019-04-10T13:38:01 23:45",
+      "motionSubject": "huoeoeu8389jj",
+      "motionState": "Stopping",
+      "coordinates": "POINT(48.87938604477707 2.3285256054011683)",
+      "store": {
+        "id": "187",
+        "label": "UBUDU",
+        "building": 1,
+        "floor": 0
+      }
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <title></title>
+    <script src='https://api.mapbox.com/mapbox.js/plugins/turf/v3.0.11/turf.min.js'></script>
+</head>
+<body>
+<pre id="res">AA</pre>
+
+    <script>
+
+        fetch("https://geolysioprod.blob.core.windows.net/ab4f4194-a21c-494b-8e7b-78bb2b4ae5c2/venue_named_43.json")
+            .then(res => res.json())
+            .then(function (response) {
+
+                console.log(response);
+               
+                let features = [];
+                for (f in response.features) {
+//                    if (response.features[f].properties.locationfloor != "0") continue;
+                    features.push(turf.point(response.features[f].geometry.coordinates));
+                    if (features.length == 2) break;
+                }
+
+                console.log(features);
+
+                var outfeature = null;
+                if (features.length > 1) {
+                    if (features.length == 2) {
+                        outfeature = turf.midpoint(features[0], features[1]);
+                    }
+                    else {
+                        var points = turf.featureCollection(features);
+                        outfeature = turf.convex(points);                         
+                    }
+                }
+
+                if (outfeature != null) {
+                    response.features.push(outfeature);
+                }
+
+                document.getElementById("res").innerHTML = JSON.stringify(outfeature, null, 4);
+                
+            });
+
+    </script>
+
+
+</body>
+</html>

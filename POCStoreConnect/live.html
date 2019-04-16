@@ -1,15 +1,16 @@
 ﻿<!DOCTYPE html>
 <html>
 <head>
-    <meta charset='utf-8'/>
+    <meta charset='utf-8' />
     <title></title>
-    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no'/>
-    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.45.0/mapbox-gl.js'></script>
-    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.45.0/mapbox-gl.css' rel='stylesheet'/>
-    <link href='assets/css/bootstrap.min.css' rel='stylesheet'/>
-    <link href='assets/css/fontawesome-all.min.css' rel='stylesheet'/>
-    <link href='assets/css/bootstrap-datetimepicker.min.css' rel='stylesheet'/>
-    <link href='assets/css/design.css' rel='stylesheet'/>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.53.1/mapbox-gl.js'></script>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.53.1/mapbox-gl.css' rel='stylesheet' />
+    <script src='https://api.mapbox.com/mapbox.js/plugins/turf/v3.0.11/turf.min.js'></script>
+    <link href='assets/css/bootstrap.min.css' rel='stylesheet' />
+    <link href='assets/css/fontawesome-all.min.css' rel='stylesheet' />
+    <link href='assets/css/bootstrap-datetimepicker.min.css' rel='stylesheet' />
+    <link href='assets/css/design.css' rel='stylesheet' />
     <style>
         body {
             margin: 0;
@@ -123,6 +124,10 @@
                     Show lines
                     <i class="fas fa-chart-line"></i>
                 </button>
+                <button type="button" class="btn btn-sm btn-outline-primary showStops">
+                    Show stops
+                    <i class="fas fa-hourglass"></i>
+                </button>
             </div>
             <div id='map'>
                 <div class="col-12 loader-map-wrapper">
@@ -167,7 +172,7 @@
     onLoadButtonClick();
 
     let layerMode = 0; //circle by default
-    let useProgressive = 0; // to draw trajectoire progressively or not. 
+    let showStops = false;
 
     document.querySelector(".showCircles").addEventListener("click", function () {
         //add "active" class to button, or remove it if it already has.
@@ -214,11 +219,29 @@
         }
     });
 
+    document.querySelector(".showStops").addEventListener("click", function () {
+        //add "active" class to button, or remove it if it already has.
+        this.classList.toggle("active");
+        showStops = this.classList.contains("active");
+        for (let id of layerIds) {
+            if (id.includes("stops")) {
+                if (showStops) {
+                    showLayer(id);
+                }
+                else {
+                    hideLayer(id);
+                }
+            }
+        }
+        applyFilters(currentbuilding, currentfloor);
+    });
 
     function onLoadButtonClick() {
         showMapLoader();
+
         apikey = document.getElementById('apikey').value;
         venueid = document.getElementById('venueid').value;
+
         // Load geolys venue
         loadVenue(apikey, venueid, function (err, venue) {
             // console.log(venue);
@@ -279,6 +302,7 @@
                                 }
                             }
                             mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
+
                             // Add map
                             map = new mapboxgl.Map({
                                 container: 'map', // container id
@@ -288,11 +312,7 @@
                                 center: [venue.defaultlon, venue.defaultlat], // starting position
                                 zoom: venue.defaultzoom // starting zoom
                             });
-                            //map.addControl(new mapboxgl.Navigation());
-                            map.on('style.load', function () {
-                            });
-                            // When a click event occurs near a marker icon, open a popup at the location of
-                            // the feature, with description HTML from its properties.
+
                             map.on("click", function (e) {
                                 var features = map.queryRenderedFeatures(e.point, {layers: layerIds});
                                 if (!features.length) return;
@@ -302,13 +322,6 @@
                                     .setLngLat(feature.geometry.coordinates)
                                     .setHTML(feature.properties.description)
                                     .addTo(map);
-                            });
-                            // Use the same approach as above to indicate that the symbols are clickable
-                            // by changing the cursor style to 'pointer'.
-                            map.on("mousemove", function (e) {
-                                /*                        var features = map.queryRenderedFeatures(e.point, { layers: [ 'markers'] });
-                                                                map.getCanvas().style.cursor = (!err && features.length) ? 'pointer' : '';
-                                */
                             });
 
                             hideMapLoader();
@@ -379,7 +392,7 @@
         xhr.send();
     }
 
-    function loadJSON(url, callback, cors) {
+    function loadJSON(url, callback) {
         var xhr = new XMLHttpRequest();
         xhr.open('GET', url, true);
         xhr.setRequestHeader('Accept', 'application/json');
@@ -485,13 +498,6 @@
         /******************************************
          * Build a layer for circles with geojson
          *****************************************/
-        // console.log(JSON.stringify(geojson));
-        let allFeatures;
-        if (useProgressive === 1) {
-            allFeatures = geojson.features;
-            geojson.features = [];
-            geojson.features.push(allFeatures[0]);
-        }
 
         //First we add layer's id to array,
         //if we don't already have it
@@ -552,20 +558,6 @@
             });
         }
 
-        if (useProgressive === 1) {
-            var i = 0;
-            var timer = window.setInterval(function () {
-                if (i < allFeatures.length) {
-                    geojson.features.push(allFeatures[i]);
-                    map.getSource('trajectoire').setData(geojson);
-
-                    i++;
-                } else {
-                    window.clearInterval(timer);
-                }
-            }, 300);
-        }
-
         /******************************************
          * Build a layer for lines with new geojson
          *****************************************/
@@ -583,13 +575,6 @@
         geojsonLine.color = geojson.color;
         for (let f of geojson.features) {
             geojsonLine.features[0].geometry.coordinates.push(f.geometry.coordinates);
-        }
-
-        let allCoordinates = [];
-        if (useProgressive === 1) {
-            for (let i = 0; i < geojsonLine.features.length; i++) {
-                allCoordinates.push(geojsonLine.features[i].geometry.coordinates);
-            }
         }
 
         found = false;
@@ -659,21 +644,102 @@
                 }
             });
 
-            if (useProgressive === 1) {
-                let i = 0;
-                let timer = window.setInterval(function () {
-                    if (i < allCoordinates.length) {
-                        geojsonLine.features[0].geometry.coordinates.push(allCoordinates[i]);
-                        map.getSource('trajectoire').setData(geojsonLine);
-                        i++;
-                    } else {
-                        window.clearInterval(timer);
-                    }
-                }, 300);
-            }
         }
 
-        // updateMarkersOnMap();
+        applyFilters(currentbuilding, currentfloor);
+    }
+
+
+    function drawStops(geojson) {
+
+        console.log({ drawStops: geojson });
+
+        // Create source if not created
+        if (!map.getSource("stops-" + geojson.layerid)) {
+            map.addSource("stops-" + geojson.layerid, {
+                "type": "geojson",
+                "maxzoom": 22,
+                "data": geojson
+            });
+        } else {
+            // Set data
+            map.getSource("stops-" + geojson.layerid).setData(geojson);
+        }
+
+        // Add polygon layer
+        if (map.getLayer(geojson.layerid)) {
+            //Layer already exists, just show it
+            map.setLayoutProperty(geojson.layerid, "visibility", "visible");
+        } else {
+            //And build the layer for polygons
+            map.addLayer({
+                "id": geojson.layerid,
+                "type": "fill",
+                "source": "stops-" + geojson.layerid,
+                "filter": ["all",
+                    ["==", "$type", "Polygon"],
+                    [
+                        "==",
+                        "locationbuilding",
+                        "{building}"
+                    ],
+                    [
+                        "==",
+                        "locationfloor",
+                        "{floor}"
+                    ]
+                ],
+                "paint": {
+                    "fill-color": geojson.color,
+                    "fill-opacity": 0.35
+                },
+                "layout": {
+                    //Here we make the layer visible if mode is circle
+                    "visibility": (showStops ? "visible" : "none")
+                }
+            });
+            layerIds.push(geojson.layerid);
+        }
+
+        // Add circle layers
+        let layernameforpoints = geojson.layerid + "-points";
+        if (map.getLayer(layernameforpoints)) {
+            //Layer already exists, just show it
+            map.setLayoutProperty(layernameforpoints, "visibility", "visible");
+        }
+        else {
+            //And build the layer for points using the same source
+            map.addLayer({
+                "id": layernameforpoints,
+                "type": "circle",
+                "source": "stops-" + geojson.layerid,
+                "filter": ["all",
+                    ["==", "$type", "Point"],
+                    [
+                        "==",
+                        "locationbuilding",
+                        "{building}"
+                    ],
+                    [
+                        "==",
+                        "locationfloor",
+                        "{floor}"
+                    ]
+                ],
+                "paint": {
+                    "circle-color": geojson.color,
+                    "circle-opacity": 0.35,
+                    "circle-radius": 15
+                },
+                "layout": {
+                    //Here we make the layer visible if mode is circle
+                    "visibility": (showStops ? "visible" : "none")
+                }
+            });
+            layerIds.push(layernameforpoints);
+
+        }
+
         applyFilters(currentbuilding, currentfloor);
     }
 

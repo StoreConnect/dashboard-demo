@@ -2,7 +2,6 @@ let API_URL = "http://apicapteur.westeurope.cloudapp.azure.com:8080/SensorThings
 let API_OBSERVATIONS = API_URL + "Observations?$top=500000&$expand=Datastream";
 let API_DATASTREAM = API_URL + "Datastreams([id])/Observations?$top=5000000&$orderby=phenomenonTime asc";
 let API_SERVICE_URL = "http://api-service.westeurope.cloudapp.azure.com:8080/services-api/";
-let API_SERVICE_LOGIN = API_SERVICE_URL + "connect/apiontologie.westeurope.cloudapp.azure.com/8890";
 let sessionId = "";
 
 let myHeaders = new Headers();
@@ -79,10 +78,10 @@ function loadMenu(dateFROM, dateTO) {
     toggleLoaderCapteur();
     toggleLoaderService();
 
-
-    // myHeaders.append('Access-Control-Allow-Origin', '*');
-    // myHeaders.append('Access-Control-Allow-Methods', 'GET, POST, PATCH, PUT, DELETE, OPTIONS');
-    // myHeaders.append('Access-Control-Allow-Headers', 'Origin, Content-Type, X-Auth-Token');
+    myHeaders.append('Content-Type', 'application/json');
+    //myHeaders.append('Access-Control-Allow-Origin', '*');
+    //myHeaders.append('Access-Control-Allow-Methods', 'GET, POST, PATCH, PUT, DELETE, OPTIONS');
+    //myHeaders.append('Access-Control-Allow-Headers', 'content-type');
 
     let opt = {
         method: 'GET',
@@ -92,7 +91,8 @@ function loadMenu(dateFROM, dateTO) {
     };
     let df = moment(dateFROM).add('2', 'hours').toISOString();
     let dt = moment(dateTO).add('2', 'hours').toISOString();
-    let filter = "&$filter=during(%20phenomenonTime,%20" + df + "/" + dt + "%20)";
+    let filter = "&$filter=during(phenomenonTime," + df + "/" + dt + ")";
+
     fetch(API_OBSERVATIONS + filter, opt).then(res => res.json()).then(function (response) {
         Observations = [];
         obsBySubject = [];
@@ -115,57 +115,47 @@ function loadMenu(dateFROM, dateTO) {
         createApiCapteurMenu(obsBySubject);
     });
 
-    //TODO: fetch API service
-    //API SERVICE
-    //1. se logger sur API_SERVICE_LOGIN
-    //2. enregistrer l'id de session dans la variable sessionId
-    //3.
-    let options = {
-        method: 'POST',
-        headers: myHeaders,
-        mode: 'cors',
-        cache: 'default'
-    };
-    fetch(API_SERVICE_LOGIN, options).then(response => response.text()).then(function (response) {
-        sessionId = response;
-        console.log("Session id  : " + sessionId);
 
-        //Creation du filtre de date pour les observations.
-        // let endpointFilter = API_SERVICE_URL+sessionId+"/filters/dashboardFilter";
-        // fetch(endpointFilter,options).then(function(response) {
-        //     console.log(endpointFilter+"/date/bt/"+df+"000 00:00"+"/"+dt+"000 00:00");
-        //     fetch(endpointFilter+"/date/bt/"+df+"000 00:00"+"/"+dt+"000 00:00", {method:"PUT",headers:myHeaders, mode:'cors',cache:"default"}).then(function(response) {
-        let endpoint = API_SERVICE_URL + sessionId + "/observations";
-        // let endpoint = API_SERVICE_URL + sessionId + "/observations/filter/dashboardFilter";
-        fetch(endpoint, opt).then(res => res.json()).then(function (response) {
-            obsByMotionSubject = [];
-            let motionSubject;
-            for (let obs of response.features) {
-                let itemDate = moment(obs.properties.timeStamp.slice(0, -9)).add("2", "hours");
-                if (itemDate.isBetween(df, dt)) {
-                    motionSubject = obs.properties.motionSubject.split("/").pop();
-                    if (!obsByMotionSubject.hasOwnProperty(motionSubject)) {
-                        obsByMotionSubject[motionSubject] = [];
-                    }
-                    obsByMotionSubject[motionSubject].push(obs);
-                }
+    //{
+    //    "observations" : [{
+    //        "timestamp": "2017-06-06T12:36:13 00:00",
+    //        "store": {
+    //            "id": "1234",
+    //            "label": "The specific '1234' Store from within a move can be observed",
+    //            "floor": 1
+    //        }
+    //    }, {
+    //        "timestamp": "2017-06-06T12:36:13 00:00",
+    //        "store": {
+    //            "id": "1234",
+    //            "label": "My Store",
+    //            "floor": 1
+    //        }
+    //    }]
+    //}
+
+    // Get trajectories
+    let endpoint = '/proxy.aspx?df=' + dtFROM + '&dt=' + dtTO;
+    endpoint = '/assets/mockservice.json?ts=' + new Date();
+    fetch(endpoint).then(res => res.json()).then(function (response) {
+        obsByMotionSubject = [];
+        motionSubjects = [];
+        for (let obs of response.observations) {
+            if (obsByMotionSubject[obs.motionSubject] === undefined) {
+                obsByMotionSubject[obs.motionSubject] = [];
+                motionSubjects.push(obs.motionSubject);
             }
-            if (!typeof obsByMotionSubject[motionSubject] == 'undefined' && obsByMotionSubject[motionSubject].length > 1) {
-                obsByMotionSubject[motionSubject].sort(function (a, b) {
-                    return moment(a.properties.timeStamp.slice(0, -9)).valueOf() - (moment(b.properties.timeStamp.slice(0, -9)).valueOf());
-                });
-            }
-            createApiServiceMenu(obsByMotionSubject);
-        });
-        //     });
-        // });
-
-        // let endpoint = API_SERVICE_URL+sessionId+"/filters/dashboardFilter/date/bt/"+df+"/"+dt;
-
-
-    }).catch(function (error) {
-
+            obsByMotionSubject[obs.motionSubject].push(obs);
+        }
+        for (let motionSubject of motionSubjects) {
+            obsByMotionSubject[motionSubject] = obsByMotionSubject[motionSubject].sort(function (a, b) {
+                return a.timestamp > b.timestamp;
+            });
+        }
+        createApiServiceMenu(obsByMotionSubject);
     });
+
+
 }
 
 
@@ -241,46 +231,38 @@ function createApiCapteurMenu(items) {
 }
 
 function createApiServiceMenu(items) {
-    console.log(items);
     let menu = document.querySelector("#apiservicemenu");
     let uls = [];
     let ul = document.createElement('ul');
     ul.setAttribute("class", "ul-subject");
 
-    // items[Object.keys(items)[0]]
     for (let it of Object.keys(items)) {
         let li = document.createElement("li");
         first = true;
         let datetimeF;
         let datetimeT;
-        items[it].sort(function(a, b) {
-            return moment(a.properties.timeStamp.slice(0, -9)).valueOf() - (moment(b.properties.timeStamp.slice(0, -9)).valueOf());
-        });
+
         for (let item of items[it]) {
-            item.properties.locationbuilding = "1";
-            item.properties.locationfloor = "" + item.properties.floor;
-            let v1 = item.geometry.coordinates[0];
-            item.geometry.coordinates[0] = item.geometry.coordinates[1];
-            item.geometry.coordinates[1] = v1;
+            let coords = item.coordinates;
+            coords = coords.replace("POINT(", "").replace(")", "").split(" ");
+
+            item.type = "Feature";
+            item.properties = {
+                locationbuilding: item.store.building + "",
+                locationfloor: item.store.floor + ""
+            };
+            item.geometry = {
+                type: "Point",
+                coordinates: [parseFloat(coords[1]), parseFloat(coords[0])]
+            };
 
             if (first) {
                 first = false;
-                datetimeF = moment(item.properties.timeStamp.slice(0, -9));
-                datetimeT = moment(item.properties.timeStamp.slice(0, -9));
+                datetimeF = item.timestamp;
             } else {
-                let itemDate = moment(item.properties.timeStamp.slice(0, -9));
-                if (itemDate.isBefore(datetimeF)) {
-                    datetimeF = itemDate;
-                }
-                if (itemDate.isAfter(datetimeT)) {
-                    datetimeT = itemDate;
-                }
+                datetimeT = item.timestamp;
             }
         }
-
-        datetimeF = datetimeF.add('2', 'hours').toISOString();
-        datetimeT = datetimeT.add('2', 'hours').toISOString();
-
 
         let spanDS = document.createElement("span");
         spanDS.setAttribute("class", "ul-subject-title");
@@ -288,7 +270,7 @@ function createApiServiceMenu(items) {
 
         let spanDSDate = document.createElement("span");
         spanDSDate.setAttribute("class", "li-ds-date");
-        spanDSDate.appendChild(document.createTextNode(" (" + datetimeF.substring(0, datetimeF.length - 8) + "/" + datetimeT.substring(0, datetimeT.length - 8) + ")"));
+        spanDSDate.appendChild(document.createTextNode(" (" + datetimeF + "/" + datetimeT + ")"));
 
         let color = colorFactory.getRandomColor();
         if (typeof color == 'undefined') {
@@ -318,9 +300,8 @@ function createApiServiceMenu(items) {
         };
 
         ul.appendChild(li);
-        // }
-    }
 
+    }
 
     uls.push(ul);
     for (let ul of uls) {
@@ -382,12 +363,28 @@ function apiCapteurMenuClick(el) {
                 i++;
             }
 
-            // console.log(JSON.stringify(geojson));
             drawTrajectoire(geojson);
 
         });
     } else {
         removeLayer(el.getAttribute("data-layer-id"));
+    }
+}
+
+function processPoints(points) {
+    if (points.length == 1) { // Point
+        return points[0];
+    }
+    else if (points.length == 2) { // Mid point
+        let midpoint = turf.midpoint(points[0], points[1]);
+        midpoint.properties = points[0].properties;
+        return midpoint;
+    }
+    else if (points.length > 2) { // Convex hull
+        var coll = turf.featureCollection(points);
+        let convex = turf.convex(coll);
+        convex.properties = points[0].properties;
+        return convex;
     }
 }
 
@@ -412,15 +409,50 @@ function apiServiceMenuClick(el) {
         let i = 0;
         for (let point of geojson.features) {
             let opacity = (i + 1) / numberOfPoints;
+            opacity = 1;
             geojson.features[i].properties.opacity = parseFloat(opacity.toFixed(2));
-            geojson.features[i].properties.building = 1;
             i++;
         }
 
-        // console.log(JSON.stringify(geojson));
+        // Draw trajectory
         drawTrajectoire(geojson);
+
+        // Calculate stop points
+        let stops = {
+            type: "FeatureCollection",
+            features: [],
+            color: geojson.color,
+            layerid: geojson.layerid + "-stops"
+        };
+        let points = [];
+        for (let point of geojson.features) {
+
+            // Add stoppings to temp array
+            if (point.motionState == 'Stopping') {
+                points.push(turf.point(point.geometry.coordinates, point.properties));
+            }
+            else {
+                // Process temp array
+                if (points.length > 0) {
+                    stops.features.push(processPoints(points));
+                    points = [];
+                }
+            }
+        }
+
+        // Compute last points if any
+        if (points.length > 0) {
+            stops.features.push(processPoints(points));
+        }
+
+        drawStops(stops);
+
+        //console.log({ stops: stops });
+
     } else {
         removeLayer(el.getAttribute("data-layer-id"));
+        removeLayer(el.getAttribute("data-layer-id") + "-stops");
+        removeLayer(el.getAttribute("data-layer-id") + "-stops-points");
     }
 }
 
