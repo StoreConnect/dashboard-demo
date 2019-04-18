@@ -135,8 +135,8 @@ function loadMenu(dateFROM, dateTO) {
     //}
 
     // Get trajectories
-    let endpoint = '/proxy.aspx?df=' + dtFROM + '&dt=' + dtTO;
-    endpoint = '/assets/mockservice.json?ts=' + new Date();
+    let endpoint = '/proxy.aspx?df=' + dtFROM.value + '&dt=' + dtTO.value;
+    //endpoint = '/assets/mockservice.json?ts=' + new Date();
     fetch(endpoint).then(res => res.json()).then(function (response) {
         obsByMotionSubject = [];
         motionSubjects = [];
@@ -152,7 +152,11 @@ function loadMenu(dateFROM, dateTO) {
                 return a.timestamp > b.timestamp;
             });
         }
+        console.log({ obsByMotionSubject: obsByMotionSubject });
         createApiServiceMenu(obsByMotionSubject);
+    }).catch(function () {
+        alert('Error while loading data from api service');
+        toggleLoaderService();        
     });
 
 
@@ -249,7 +253,8 @@ function createApiServiceMenu(items) {
             item.type = "Feature";
             item.properties = {
                 locationbuilding: item.store.building + "",
-                locationfloor: item.store.floor + ""
+                locationfloor: item.store.floor + "",
+                timestamp: item.timestamp
             };
             item.geometry = {
                 type: "Point",
@@ -372,20 +377,67 @@ function apiCapteurMenuClick(el) {
 }
 
 function processPoints(points) {
-    if (points.length == 1) { // Point
-        return points[0];
-    }
-    else if (points.length == 2) { // Mid point
-        let midpoint = turf.midpoint(points[0], points[1]);
-        midpoint.properties = points[0].properties;
-        return midpoint;
-    }
-    else if (points.length > 2) { // Convex hull
+
+    if (points.length > 0) {
         var coll = turf.featureCollection(points);
-        let convex = turf.convex(coll);
-        convex.properties = points[0].properties;
-        return convex;
+        let center = turf.center(coll);
+        center.properties = points[0].properties;
+
+        // Compute duration
+        let duration = 0;
+        let first = points[0].properties.timestamp;
+        first = first.substring(0, first.length - 13);
+        let last = points[points.length - 1].properties.timestamp;
+        last = last.substring(0, last.length - 13);
+        let mfirst = moment.utc(first);
+        let mlast = moment.utc(last);
+        duration = moment.duration(mlast.diff(mfirst)).asSeconds();
+        //console.log({
+        //    points: [
+        //        points,
+        //        first,
+        //        last,
+        //        duration
+        //    ]
+        //});
+        center.properties.duration = duration;
+        center.properties.radius = 3;
+
+        if (duration > 0 && duration <= 10) {
+            center.properties.radius = 5;
+        }
+        else if (duration > 10 && duration <= 30) {
+            center.properties.radius = 10;
+        }
+        else if (duration > 30 && duration <= 60) {
+            center.properties.radius = 15;
+        }
+        else if (duration > 60 && duration <= 300) {
+            center.properties.radius = 25;
+        }
+        else if (duration > 300) {
+            center.properties.radius = 40;
+        }
+
+        center.properties.radiusinner = center.properties.radius - 1;
+
+        return center;
     }
+
+    //if (points.length == 1) { // Point
+    //    return points[0];
+    //}
+    //else if (points.length == 2) { // Mid point
+    //    let midpoint = turf.midpoint(points[0], points[1]);
+    //    midpoint.properties = points[0].properties;
+    //    return midpoint;
+    //}
+    //else if (points.length > 2) { // Convex hull
+    //    var coll = turf.featureCollection(points);
+    //    let convex = turf.convex(coll);
+    //    convex.properties = points[0].properties;
+    //    return convex;
+    //}
 }
 
 /**
@@ -409,7 +461,6 @@ function apiServiceMenuClick(el) {
         let i = 0;
         for (let point of geojson.features) {
             let opacity = (i + 1) / numberOfPoints;
-            opacity = 1;
             geojson.features[i].properties.opacity = parseFloat(opacity.toFixed(2));
             i++;
         }
@@ -447,12 +498,13 @@ function apiServiceMenuClick(el) {
 
         drawStops(stops);
 
-        //console.log({ stops: stops });
+        console.log({ stops: stops });
 
     } else {
         removeLayer(el.getAttribute("data-layer-id"));
-        removeLayer(el.getAttribute("data-layer-id") + "-stops");
         removeLayer(el.getAttribute("data-layer-id") + "-stops-points");
+        removeLayer(el.getAttribute("data-layer-id") + "-stops-points-inner");
+        removeLayer(el.getAttribute("data-layer-id") + "-stops-points-text");
     }
 }
 
@@ -465,7 +517,6 @@ function toggleLoaderCapteur() {
 }
 
 function toggleLoaderService() {
-
     $('.loader-service').toggle();
 }
 

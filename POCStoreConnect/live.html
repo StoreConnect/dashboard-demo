@@ -543,7 +543,7 @@
                     ]
                 ],
                 "paint": {
-                    "circle-radius": 5,
+                    "circle-radius": 4,
                     "circle-color": geojson.color,
                     "circle-opacity": {
                         "type": "identity",
@@ -691,7 +691,7 @@
                 ],
                 "paint": {
                     "fill-color": geojson.color,
-                    "fill-opacity": 0.35
+                    "fill-opacity": 0.4
                 },
                 "layout": {
                     //Here we make the layer visible if mode is circle
@@ -706,8 +706,11 @@
         if (map.getLayer(layernameforpoints)) {
             //Layer already exists, just show it
             map.setLayoutProperty(layernameforpoints, "visibility", "visible");
+            map.setLayoutProperty(layernameforpoints + "-inner", "visibility", "visible");
+            map.setLayoutProperty(layernameforpoints + "-text", "visibility", "visible");
         }
         else {
+
             //And build the layer for points using the same source
             map.addLayer({
                 "id": layernameforpoints,
@@ -727,16 +730,102 @@
                     ]
                 ],
                 "paint": {
-                    "circle-color": geojson.color,
-                    "circle-opacity": 0.35,
-                    "circle-radius": 15
+                    "circle-color": '#000000',
+                    "circle-opacity": 0.4,
+                    "circle-radius": {
+                        "property": "radius",
+                        "type": "identity"
+                    }
                 },
                 "layout": {
                     //Here we make the layer visible if mode is circle
                     "visibility": (showStops ? "visible" : "none")
                 }
             });
+
+            map.addLayer({
+                "id": layernameforpoints+"-inner",
+                "type": "circle",
+                "source": "stops-" + geojson.layerid,
+                "filter": ["all",
+                    ["==", "$type", "Point"],
+                    [
+                        "==",
+                        "locationbuilding",
+                        "{building}"
+                    ],
+                    [
+                        "==",
+                        "locationfloor",
+                        "{floor}"
+                    ]
+                ],
+                "paint": {
+                    "circle-color": geojson.color,
+                    "circle-opacity": 0.35,
+                    "circle-radius": {
+                        "property": "radiusinner",
+                        "type": "identity"
+                    }
+                },
+                "layout": {
+                    //Here we make the layer visible if mode is circle
+                    "visibility": (showStops ? "visible" : "none")
+                }
+            });
+
+            map.addLayer({
+                "id": layernameforpoints + "-text",
+                "type": "symbol",
+                "source": "stops-" + geojson.layerid,
+                "filter": ["all",
+                    ["==", "$type", "Point"],
+                    [
+                        "==",
+                        "locationbuilding",
+                        "{building}"
+                    ],
+                    [
+                        "==",
+                        "locationfloor",
+                        "{floor}"
+                    ]
+                ],
+                "paint": {
+                    "text-color": "#333333",
+                    "text-halo-color": "#ffffff",
+                    "text-halo-width": 1                
+                },
+                "layout": {
+                    "text-line-height": 1.2,
+                    "text-allow-overlap": true,
+                    "icon-allow-overlap": true,
+                    "icon-image": "",
+                    "text-ignore-placement": false,
+                    "text-max-angle": 38,
+                    "text-font": ["DIN Offc Pro Medium", "Arial Unicode MS Regular"],
+                    "symbol-placement": "point",
+                    "text-padding": 2,
+                    "text-offset": [0, 1],
+                    "icon-optional": false,
+                    "text-optional": true,
+                    "text-rotation-alignment": "viewport",
+                    "text-anchor": "top",
+                    "text-field": "{duration}",
+                    "text-letter-spacing": 0.02,
+                    "text-max-width": 8,
+                    "symbol-spacing": 250,
+                    "text-size": {
+                        "base": 1,
+                        "stops": [[16, 11], [20, 13]]
+                    },
+                    "visibility": (showStops ? "visible" : "none")
+                }
+            });
+
             layerIds.push(layernameforpoints);
+            layerIds.push(layernameforpoints + "-inner");
+            layerIds.push(layernameforpoints + "-text");
 
         }
 

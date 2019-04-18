@@ -14,6 +14,9 @@ namespace POCStoreConnect
         {
             string API_SERVICE_URL = "http://api-service.westeurope.cloudapp.azure.com:8080/services-api/";
 
+            string datefrom = Request["df"];
+            string dateto = Request["dt"];
+
             WebClient wc = new WebClient();
             wc.Headers["Content-Type"] = "application/json";
 
@@ -22,16 +25,7 @@ namespace POCStoreConnect
                 ""EndPoint"": {
                     ""host"": ""apiontologie.westeurope.cloudapp.azure.com"",
                     ""port"": 8890,
-                    ""endpointName"": ""strabon - endpoint - 3.3.2 - SNAPSHOT / Query""
-                },
-                ""Database"": {
-                    ""dbName"": ""ontologydb"",
-                    ""dbEngine"": ""postgis"",
-                    ""user"": ""geouser"",
-                    ""password"": ""geouser"",
-                    ""port"": 5432,
-                    ""serverName"": null,
-                    ""checkForLockTable"": true
+                    ""endpointName"": ""strabon/Query""
                 }
             }";
 
@@ -39,13 +33,13 @@ namespace POCStoreConnect
 
             string searchquery = @"{
                 ""connectionID"": """ + sessionid + @""",
-                ""select"": [""timeStamp"", ""motionState"", ""floor"", ""building"", ""coordinates""],
+                ""select"": [""timeStamp"", ""motionState"", ""motionSubject"", ""floor"", ""building"", ""coordinates""],
                 ""filters"": [{
                     ""filter"": {
                         ""condition"": {
                             ""field"": ""timeStamp"",
                             ""operator"": "">="",
-                            ""value"": ""2019-04-10T13:30:00 00:00""
+                            ""value"": """ + datefrom + @"""
                         },
                         ""logicalOP"": ""AND""
                     }
@@ -54,12 +48,14 @@ namespace POCStoreConnect
                         ""condition"": {
                             ""field"": ""timeStamp"",
                             ""operator"": ""<="",
-                            ""value"": ""2019-04-10T14:00:00 00:00""
+                            ""value"": """ + dateto + @"""
                         }
                     }
                 }]
             }";
 
+            wc = new WebClient();
+            wc.Headers["Content-Type"] = "application/json";
             string res = wc.UploadString(API_SERVICE_URL + "query", "POST", searchquery);
 
             Response.Write(res);
